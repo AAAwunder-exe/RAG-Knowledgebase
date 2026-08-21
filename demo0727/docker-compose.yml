@@ -1,0 +1,288 @@
+# ==================== 企业级 AI 知识管理平台 - Docker Compose 配置 ====================
+# 微服务架构：Vue3 → Nginx:80 → Gateway:8080 → auth-service:8081 / kb-service:8082 → rag-engine:8001
+# 基础设施：Nacos + Redis + MySQL（enterprise_auth / enterprise_kb 双 schema）
+#
+# 启动: docker compose up -d --build
+# 停止: docker compose down
+# 注意: 已有 mysql 数据卷需先执行迁移（见 deploy/migrate-split-db.sql），否则从空卷重新初始化
+
+services:
+  # ==================== Nacos 注册中心 ====================
+  nacos:
+    image: nacos/nacos-server:v2.4.3
+    container_name: ai-platform-nacos
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      MODE: standalone
+      # 学习环境关闭 Nacos 内置鉴权，服务直连注册
+      NACOS_AUTH_ENABLE: "false"
+      JVM_XMS: 512m
+      JVM_XMX: 512m
+    ports:
+      # 8848 控制台/HTTP；9848 必须映射（gRPC，客户端 SDK 需要）
+      - "8848:8848"
+      - "9848:9848"
+    volumes:
+      - nacos-data:/home/nacos/data
+    networks:
+      - ai-platform-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/v1/console/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ==================== MySQL 8.0 数据库（双 schema） ====================
+  mysql:
+    image: mysql:8.0
+    container_name: ai-platform-mysql
+    restart: unless-stopped
+    environment:
+      # 真实密码必须放在 .env，禁止在 compose 中给出明文默认值
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required, set it in .env}
+      MYSQL_DATABASE: enterprise_auth
+      MYSQL_ROOT_HOST: "%"
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 拆分后的双 schema 初始化脚本（仅空数据卷首次执行；已有卷用 deploy/migrate-split-db.sql 迁移）
+      - ./db/01-schema-auth.sql:/docker-entrypoint-initdb.d/01-schema-auth.sql:ro
+      - ./db/02-schema-kb.sql:/docker-entrypoint-initdb.d/02-schema-kb.sql:ro
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+      --max-connections=500
+      --innodb-buffer-pool-size=256M
+    networks:
+      - ai-platform-net
+    healthcheck:
+      # mysqladmin 需要 password 以登录；password 通过 shell 展开注入，避免硬编码
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  # ==================== Redis 缓存 ====================
+  redis:
+    image: redis:7-alpine
+    container_name: ai-platform-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ai-platform-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    environment:
+      TZ: Asia/Shanghai
+
+  # ==================== Python RAG 引擎 ====================
+  rag-service:
+    build:
+      context: ../Atest
+      dockerfile: Dockerfile
+    container_name: ai-platform-rag
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      # 绑定挂载本地 HF 缓存，避免容器内重新下载模型（国内访问 HF 极慢）
+      - C:/Users/jiang/.cache/huggingface:/root/.cache/huggingface
+      # 本地模型目录（bge-reranker-base 等自定义模型）
+      - D:/models:/app/models
+      # 索引数据持久化目录（knowledge.index/chunks.pkl/meta.pkl/tokenized_corpus.pkl）
+      - rag-data:/app/data
+    environment:
+      TZ: Asia/Shanghai
+      PYTHONUNBUFFERED: "1"
+      HF_ENDPOINT: https://hf-mirror.com
+      # 本地模型路径（绕过 HF cache symlink 问题）
+      RERANKER_MODEL: /app/models/bge-reranker-base
+      # 检索参数：减少 Reranker 候选数以加速首次查询
+      HYBRID_FUSION_TOP_K: "6"
+      RERANKER_TOP_K: "2"
+      # 索引写入挂载卷，重启容器不丢
+      RAG_DATA_DIR: /app/data
+      # ========== 问答缓存（走 compose 内部的 Redis 服务） ==========
+      CACHE_BACKEND: redis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      REDIS_KEY_PREFIX: "rag:cache:"
+      # ========== LLM 配置（通过环境变量切换，支持任意 OpenAI 兼容 API） ==========
+      # 真实 Key 必须放在 .env，禁止写入仓库；切换 LLM 只改 .env 即可
+      VLLM_BASE_URL: ${VLLM_BASE_URL:-https://api.moonshot.cn/v1}
+      VLLM_MODEL: ${VLLM_MODEL:-kimi-k2.6}
+      VLLM_API_KEY: ${VLLM_API_KEY:?VLLM_API_KEY is required, set it in .env}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ai-platform-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+
+  # ==================== 认证服务 auth-service（8081） ====================
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: auth-service
+    container_name: ai-platform-auth
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    # 信任模型：下游服务不校验 JWT、只信网关注入的 header，故不对外暴露端口。
+    # 仅网关（内部网络 lb://auth-service）可达。调试时可临时放开 8081:8081。
+    environment:
+      TZ: Asia/Shanghai
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: enterprise_auth
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required, set it in .env}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      NACOS_SERVER_ADDR: nacos:8848
+      # 与 gateway 保持同一 JWT 密钥（签名/验签一致）；真实值放在 .env
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required, set it in .env}
+      # Dashboard 跨服务聚合：kb-service 内部接口（容器内走服务名）
+      kb.internal.base-url: http://kb-service:8082
+    networks:
+      - ai-platform-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # ==================== 知识服务 kb-service（8082） ====================
+  kb-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: kb-service
+    container_name: ai-platform-kb
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    # 同 auth-service：不对外暴露端口，仅经网关可达（信任模型）
+    environment:
+      TZ: Asia/Shanghai
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: enterprise_kb
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required, set it in .env}
+      NACOS_SERVER_ADDR: nacos:8848
+      # RAG 引擎在 compose 内部网络，服务名直连
+      AI_RAG_BASE_URL: http://rag-service:8001
+    volumes:
+      # 文档上传落盘目录
+      - uploads-data:/app/uploads
+    networks:
+      - ai-platform-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # ==================== 网关 gateway（8080，统一校验 JWT + 路由） ====================
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: gateway
+    container_name: ai-platform-gateway
+    restart: unless-stopped
+    depends_on:
+      nacos:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Asia/Shanghai
+      NACOS_SERVER_ADDR: nacos:8848
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required, set it in .env}
+    networks:
+      - ai-platform-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # ==================== 前端 Nginx 服务（反向代理到网关） ====================
+  nginx:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ai-platform-nginx
+    restart: unless-stopped
+    depends_on:
+      gateway:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    networks:
+      - ai-platform-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+# ==================== 数据卷 ====================
+volumes:
+  nacos-data:
+    driver: local
+  mysql-data:
+    driver: local
+  redis-data:
+    driver: local
+  uploads-data:
+    driver: local
+  rag-data:
+    driver: local
+
+# ==================== 网络 ====================
+networks:
+  ai-platform-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
