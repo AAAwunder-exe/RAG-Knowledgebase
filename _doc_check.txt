@@ -1,5 +1,0 @@
-id	knowledge_id	title	original_name	type	size	content_len	preview
-2087431283825328130	2087426443481063426	计算机组成原理 (谭志虎) (z-library.sk, 1lib.sk, z-lib.sk).pdf	计算机组成原理 (谭志虎) (z-library.sk, 1lib.sk, z-lib.sk).pdf	pdf	36541096	1091804	立足经典知识体系，注重系统性与完整性，培养计算机系统能力\n理论实践一体化，游戏闯关式在线虚拟仿真实验，轻松破解实验难题\n紧扣考研大纲，精品慕课、微课同步导学，优质教辅资源助力教学\nCOMPUTER ORGANIZATION \nAND ARC
-7493230402426016602	2087426443481063426	数据结构	数据结构 (陈越、何钦铭、徐镜春、魏宝刚、杨枨编) (z-library.sk, 1lib.sk, z-lib.sk).pdf	pdf	56039867	227	[General Information]\n书名=数据结构（第2版）=DATA STRUCTURE\n作者=陈越主编；何钦铭，徐镜春，魏宝刚，杨枨编著\n页数=315\nSS号=14043535\nDX号=\n出版日期=2016.06\n出版社=高等教
-7493476755244484887	2087426443481063426	计算机操作系统	计算机操作系统（慕课版） (汤小丹, 王红玲, 姜华, 汤子瀛) (z-library.sk, 1lib.sk, z-lib.sk).pdf	pdf	28246386	1238000	汤子瀛《计算机操作系统》新版修订，传承经典\n全面覆盖考研大纲，紧跟最新技术发展\n编排多类型习题，配套立体化资源，支持线上线下混合式教学\nCOMPUTER \nOPERATING SYSTEM\n计算机\n操作系统\n慕课版\n高等学校计算机专业核心课
-7493476841951522402	2087426443481063426	计算机网络	计算机网络（第8版） (谢希仁) (z-library.sk, 1lib.sk, z-lib.sk).pdf	pdf	127814851	NULL	NULL

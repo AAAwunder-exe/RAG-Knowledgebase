@@ -21,13 +21,14 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/documents")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAuthority('menu:document')")
 public class DocumentController {
 
     private final DocumentService documentService;
 
     @Operation(summary = "上传文档")
     @PostMapping("/upload")
+    @PreAuthorize("hasAuthority('api:document:upload')")
     public Result<DocumentVO> uploadDocument(
             @RequestParam("file") MultipartFile file,
             @RequestParam("knowledgeId") Long knowledgeId,
@@ -68,6 +69,7 @@ public class DocumentController {
 
     @Operation(summary = "更新文档信息")
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('api:document:edit')")
     public Result<DocumentVO> updateDocument(
             @PathVariable Long id,
             @Valid @RequestBody DocumentUpdateDTO dto) {
@@ -76,6 +78,7 @@ public class DocumentController {
 
     @Operation(summary = "删除文档")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('api:document:delete')")
     public Result<Void> deleteDocument(@PathVariable Long id) {
         documentService.deleteDocument(id);
         return Result.success();

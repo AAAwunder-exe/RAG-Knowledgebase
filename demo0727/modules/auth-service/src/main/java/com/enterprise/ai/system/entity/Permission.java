@@ -24,13 +24,24 @@ public class Permission extends BaseEntity {
     @TableField("permission_code")
     private String permissionCode;
 
+    /** 前端路由路径（type=menu 时使用，如 /knowledge） */
+    @TableField("path")
+    private String path;
+
+    /** 前端组件路径（type=menu 时使用，如 /knowledge/index.vue） */
+    @TableField("component")
+    private String component;
+
+    /** 菜单图标（Element Plus 图标名） */
+    @TableField("icon")
+    private String icon;
+
     /** 权限类型：menu-菜单，button-按钮，api-接口 */
     @TableField("permission_type")
     private String permissionType;
 
     /** 父级 ID */
     @TableField("parent_id")
-    @JsonSerialize(using = ToStringSerializer.class)
     private Long parentId;
 
     /** 排序 */

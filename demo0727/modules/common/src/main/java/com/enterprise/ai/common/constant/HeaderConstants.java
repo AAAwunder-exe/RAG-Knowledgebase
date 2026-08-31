@@ -16,6 +16,9 @@ public final class HeaderConstants {
     /** 角色编码列表（逗号分隔，形如 ROLE_ADMIN,ROLE_USER） */
     public static final String USER_ROLES = "X-User-Roles";
 
+    /** 权限码列表（逗号分隔，形如 menu:knowledge,menu:role） */
+    public static final String USER_PERMISSIONS = "X-User-Permissions";
+
     private HeaderConstants() {
     }
 }

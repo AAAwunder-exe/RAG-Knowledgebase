@@ -1,9 +1,14 @@
 import request from './request'
-import type { UserVO, UserUpdateDTO, UserCreateDTO, UserAdminUpdateDTO, PageResult, PageQuery } from '@/types'
+import type { UserVO, UserUpdateDTO, UserCreateDTO, UserAdminUpdateDTO, PageResult, PageQuery, UserAccessVO, Role } from '@/types'
 
 /** 获取当前用户信息 */
 export function getCurrentUser() {
   return request.get<UserVO, UserVO>('/users/me')
+}
+
+/** 获取当前用户的访问权限（动态菜单 + 权限码） */
+export function getCurrentUserAccess() {
+  return request.get<UserAccessVO, UserAccessVO>('/users/me/access')
 }
 
 /** 根据 ID 获取用户信息 */
@@ -44,4 +49,14 @@ export function updateUser(id: string, data: UserAdminUpdateDTO) {
 /** 删除用户 */
 export function deleteUser(id: string) {
   return request.delete(`/users/${id}`)
+}
+
+/** 获取用户的角色列表 */
+export function getUserRoles(userId: string) {
+  return request.get<Role[], Role[]>(`/users/${userId}/roles`)
+}
+
+/** 为用户分配角色 */
+export function assignUserRoles(userId: string, roleIds: string[]) {
+  return request.post(`/users/${userId}/roles`, roleIds)
 }

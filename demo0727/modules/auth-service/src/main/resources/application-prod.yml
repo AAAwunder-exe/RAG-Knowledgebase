@@ -39,7 +39,7 @@ springdoc:
 # ==================== 生产环境 JWT 配置 ====================
 security:
   jwt:
-    secret: ${JWT_SECRET:enterprise-ai-platform-jwt-secret-key-2024}
+    secret: ${JWT_SECRET:}
     expiration: ${JWT_EXPIRATION:3600000}
     refresh-expiration: ${JWT_REFRESH_EXPIRATION:86400000}
 

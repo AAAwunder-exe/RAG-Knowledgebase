@@ -122,9 +122,21 @@ import BaseTable, { type TableColumn } from '@/components/BaseTable.vue'
 import Pagination from '@/components/Pagination.vue'
 import { pageDocuments, uploadDocument, deleteDocument } from '@/api/document'
 import { pageKnowledgeBases } from '@/api/knowledge'
+import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
 const router = useRouter()
+
+const userStore = useUserStore()
+
+/** 操作前校验权限：无权限时弹提示并阻止 */
+function requirePermission(code: string): boolean {
+  if (!userStore.hasPermission(code)) {
+    ElMessage.warning('权限不足：暂无该操作权限，请联系管理员分配')
+    return false
+  }
+  return true
+}
 
 /** 查询条件 */
 const queryData = reactive({
@@ -238,6 +250,7 @@ function formatSize(bytes: number) {
 
 /** 删除文档 */
 async function handleDelete(row: any) {
+  if (!requirePermission('api:document:delete')) return
   try {
     await ElMessageBox.confirm(
       `确定要删除文档「${row.originalName}」吗？此操作不可恢复。`,
@@ -268,6 +281,7 @@ const uploadForm = reactive<Record<string, any>>({
 
 /** 打开上传弹窗：未选知识库则打开后仍需选择；已选则带入当前知识库 */
 function handleOpenUpload() {
+  if (!requirePermission('api:document:upload')) return
   uploadForm.knowledgeId = queryData.knowledgeId || ''
   uploadForm.file = null
   uploadForm.title = ''

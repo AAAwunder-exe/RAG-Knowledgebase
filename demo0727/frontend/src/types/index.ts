@@ -33,6 +33,25 @@ export interface UserVO {
   roles: string[]
 }
 
+/** 动态菜单节点 */
+export interface MenuNode {
+  id: string
+  name: string
+  code: string
+  parentId: string | null
+  path: string
+  component: string
+  icon: string
+  sort: number
+  children?: MenuNode[]
+}
+
+/** 当前用户访问权限信息 */
+export interface UserAccessVO {
+  menus: MenuNode[]
+  permissions: string[]
+}
+
 /** 登录响应 VO */
 export interface LoginVO {
   accessToken: string
@@ -80,6 +99,8 @@ export interface UserAdminUpdateDTO {
   phone?: string
   avatar?: string
   status?: number
+  /** 新密码（留空则不修改） */
+  password?: string
 }
 
 /** 用户更新 DTO */
@@ -108,7 +129,10 @@ export interface Permission {
   permissionName: string
   permissionCode: string
   permissionType: string // menu | button | api
-  parentId: string
+  parentId: string | null
+  path?: string
+  component?: string
+  icon?: string
   sort: number
   description: string
   status: number

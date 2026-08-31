@@ -1,4 +1,4 @@
-# ==================== 企业级 AI 知识管理平台 - Docker Compose 配置 ====================
+# ====================  Docker Compose 配置 ====================
 # 微服务架构：Vue3 → Nginx:80 → Gateway:8080 → auth-service:8081 / kb-service:8082 → rag-engine:8001
 # 基础设施：Nacos + Redis + MySQL（enterprise_auth / enterprise_kb 双 schema）
 #
@@ -15,8 +15,13 @@ services:
     environment:
       TZ: Asia/Shanghai
       MODE: standalone
-      # 学习环境关闭 Nacos 内置鉴权，服务直连注册
-      NACOS_AUTH_ENABLE: "false"
+      # 开启 Nacos 内置鉴权（注册/发现/控制台均需账号密码）
+      NACOS_AUTH_ENABLE: "true"
+      # 内部鉴权 identity：服务端/客户端一致，防伪造请求
+      NACOS_AUTH_IDENTITY_KEY: serverIdentity
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:?NACOS_AUTH_IDENTITY_VALUE is required, set it in .env}
+      # 控制台 JWT 签名密钥：必须为 base64 编码、解码后 >= 32 字节的密文
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:?NACOS_AUTH_TOKEN is required, set it in .env}
       JVM_XMS: 512m
       JVM_XMX: 512m
     ports:
@@ -167,6 +172,9 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       NACOS_SERVER_ADDR: nacos:8848
+      # Nacos 鉴权账号（开鉴权后客户端必须登录）
+      SPRING_CLOUD_NACOS_USERNAME: ${NACOS_USERNAME:-nacos}
+      SPRING_CLOUD_NACOS_PASSWORD: ${NACOS_PASSWORD:-nacos}
       # 与 gateway 保持同一 JWT 密钥（签名/验签一致）；真实值放在 .env
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required, set it in .env}
       # Dashboard 跨服务聚合：kb-service 内部接口（容器内走服务名）
@@ -204,6 +212,9 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required, set it in .env}
       NACOS_SERVER_ADDR: nacos:8848
+      # Nacos 鉴权账号（开鉴权后客户端必须登录）
+      SPRING_CLOUD_NACOS_USERNAME: ${NACOS_USERNAME:-nacos}
+      SPRING_CLOUD_NACOS_PASSWORD: ${NACOS_PASSWORD:-nacos}
       # RAG 引擎在 compose 内部网络，服务名直连
       AI_RAG_BASE_URL: http://rag-service:8001
     volumes:
@@ -235,6 +246,9 @@ services:
     environment:
       TZ: Asia/Shanghai
       NACOS_SERVER_ADDR: nacos:8848
+      # Nacos 鉴权账号（开鉴权后客户端必须登录）
+      SPRING_CLOUD_NACOS_USERNAME: ${NACOS_USERNAME:-nacos}
+      SPRING_CLOUD_NACOS_PASSWORD: ${NACOS_PASSWORD:-nacos}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required, set it in .env}
     networks:
       - ai-platform-net

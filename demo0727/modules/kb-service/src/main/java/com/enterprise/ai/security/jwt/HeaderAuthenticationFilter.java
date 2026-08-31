@@ -41,10 +41,13 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
             try {
                 Long uid = Long.valueOf(userId);
                 String username = request.getHeader(HeaderConstants.USER_NAME);
-                List<SimpleGrantedAuthority> authorities = parseRoles(request.getHeader(HeaderConstants.USER_ROLES));
+                List<SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
+                authorities.addAll(parseRoles(request.getHeader(HeaderConstants.USER_ROLES)));
+                // 权限码作为普通 authority（形如 menu:knowledge），供 @PreAuthorize("hasAuthority('menu:xxx')") 鉴权
+                authorities.addAll(parseRoles(request.getHeader(HeaderConstants.USER_PERMISSIONS)));
                 // 无任何角色时回退默认 ROLE_USER（对齐原 JwtAuthenticationFilter 逻辑）
                 if (authorities.isEmpty()) {
-                    authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+                    authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
                 }
 
                 UsernamePasswordAuthenticationToken authentication =

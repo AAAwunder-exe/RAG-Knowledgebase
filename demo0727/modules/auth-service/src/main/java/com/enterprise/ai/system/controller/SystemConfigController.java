@@ -22,14 +22,14 @@ public class SystemConfigController {
 
     private final SystemConfigService systemConfigService;
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('menu:settings')")
     @Operation(summary = "获取全部系统配置")
     @GetMapping
     public Result<Map<String, String>> getAllConfigs() {
         return Result.success(systemConfigService.getAllConfigs());
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('menu:settings')")
     @Operation(summary = "保存系统配置")
     @PutMapping
     public Result<Void> saveConfigs(@RequestBody Map<String, String> configs) {

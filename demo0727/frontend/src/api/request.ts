@@ -90,6 +90,12 @@ async function doRefresh(): Promise<boolean> {
     } catch {
       // 用户信息刷新失败不阻塞会话
     }
+    // 续期成功后同步动态菜单与权限码（确保刷新页面/切标签后权限仍一致）
+    try {
+      await store.loadAccess()
+    } catch {
+      // 菜单加载失败不阻塞会话，路由守卫会在导航时兜底重试
+    }
     return true
   } catch {
     store.logout()
@@ -172,6 +178,11 @@ service.interceptors.response.use(
       return handleUnauthorized(config)
     }
 
+    // 无权限：静默处理，不弹窗（前端已按权限动态渲染菜单，越权请求无需打扰用户）
+    if (res.code === 403) {
+      return Promise.reject(new Error(res.message || 'FORBIDDEN'))
+    }
+
     // 刷新/静默续期请求的业务错误不弹窗（避免与登出提示重复）
     if (config._skipAuthRefresh) {
       return Promise.reject(new Error(res.message))
@@ -196,8 +207,8 @@ service.interceptors.response.use(
           // Token 过期：走自动续期重放
           return handleUnauthorized(config)
         case 403:
-          message = '拒绝访问'
-          break
+          // 无权限：静默处理，不弹窗（前端已按权限动态渲染菜单，越权请求无需打扰用户）
+          return Promise.reject(error)
         case 404:
           message = '请求资源不存在'
           break

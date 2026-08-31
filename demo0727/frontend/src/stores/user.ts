@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { UserVO } from '@/types'
+import type { UserVO, MenuNode } from '@/types'
 import { useAiStore } from '@/stores/ai'
 
 /** refreshToken 持久化 key（与 accessToken 分开存储） */
@@ -24,12 +24,33 @@ export const useUserStore = defineStore('user', () => {
   const userInfo = ref<UserVO | null>(
     localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')!) : null
   )
+  // 动态菜单树（由 /me/access 加载）
+  const menus = ref<MenuNode[]>([])
+  // 权限码集合
+  const permissions = ref<string[]>([])
 
   /** 是否已登录（内存中存在 accessToken 即视为已登录） */
   const isLoggedIn = computed(() => !!accessToken.value)
 
   /** 用户角色 */
   const roles = computed(() => userInfo.value?.roles || [])
+
+  /** 是否为超级管理员 */
+  const isAdmin = computed(() => roles.value.includes('ROLE_ADMIN'))
+
+  /** 是否拥有指定权限码 */
+  function hasPermission(code: string) {
+    return permissions.value.includes(code)
+  }
+
+  /** 加载当前用户的动态菜单与权限码（登录/续期/刷新页面后调用） */
+  async function loadAccess() {
+    // 动态 import 避免与 api/request 形成静态循环依赖（request → store → api/user → request）
+    const { getCurrentUserAccess } = await import('@/api/user')
+    const access = await getCurrentUserAccess()
+    menus.value = access.menus || []
+    permissions.value = access.permissions || []
+  }
 
   /** 设置 Access Token（仅内存） */
   function setToken(t: string) {
@@ -64,6 +85,8 @@ export const useUserStore = defineStore('user', () => {
     accessToken.value = ''
     refreshToken.value = ''
     userInfo.value = null
+    menus.value = []
+    permissions.value = []
     localStorage.removeItem(REFRESH_TOKEN_KEY)
     localStorage.removeItem('userInfo')
     localStorage.removeItem('token') // 清理旧版本残留的 accessToken key
@@ -76,8 +99,13 @@ export const useUserStore = defineStore('user', () => {
     accessToken,
     refreshToken,
     userInfo,
+    menus,
+    permissions,
     isLoggedIn,
     roles,
+    isAdmin,
+    hasPermission,
+    loadAccess,
     setToken,
     setRefreshToken,
     setUserInfo,

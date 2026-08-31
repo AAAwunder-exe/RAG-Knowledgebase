@@ -99,6 +99,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
         Long userId = claims.get("userId", Long.class);
         String username = claims.getSubject();
         List<String> roles = getRoles(claims);
+        List<String> permissions = getPermissions(claims);
 
         ServerHttpRequest mutated = request.mutate()
             .headers(h -> {
@@ -106,9 +107,11 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                 h.remove(HeaderConstants.USER_ID);
                 h.remove(HeaderConstants.USER_NAME);
                 h.remove(HeaderConstants.USER_ROLES);
+                h.remove(HeaderConstants.USER_PERMISSIONS);
                 h.set(HeaderConstants.USER_ID, String.valueOf(userId));
                 h.set(HeaderConstants.USER_NAME, username == null ? "" : username);
                 h.set(HeaderConstants.USER_ROLES, String.join(",", roles));
+                h.set(HeaderConstants.USER_PERMISSIONS, String.join(",", permissions));
             })
             .build();
 
@@ -125,6 +128,16 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
         return List.of();
     }
 
+    private List<String> getPermissions(Claims claims) {
+        Object permissions = claims.get("permissions");
+        if (permissions instanceof List) {
+            return ((List<?>) permissions).stream()
+                .map(String::valueOf)
+                .collect(Collectors.toList());
+        }
+        return List.of();
+    }
+
     /** 剥离客户端携带的 X-User-* header（放行路径也要剥离，防伪造） */
     private ServerHttpRequest stripForwardedHeaders(ServerHttpRequest request) {
         return request.mutate()
@@ -132,6 +145,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                 h.remove(HeaderConstants.USER_ID);
                 h.remove(HeaderConstants.USER_NAME);
                 h.remove(HeaderConstants.USER_ROLES);
+                h.remove(HeaderConstants.USER_PERMISSIONS);
             })
             .build();
     }

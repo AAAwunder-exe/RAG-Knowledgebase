@@ -15,27 +15,27 @@
         router
         class="sidebar-menu"
       >
-        <template v-for="item in menuItems" :key="item.path">
+        <template v-for="item in menuItems" :key="item.id">
           <!-- 含子菜单的分组 -->
-          <el-sub-menu v-if="item.children" :index="item.path">
+          <el-sub-menu v-if="isGroup(item)" :index="item.path || item.code">
             <template #title>
-              <el-icon><component :is="item.icon" /></el-icon>
-              <span>{{ item.title }}</span>
+              <el-icon><component :is="item.icon || 'Menu'" /></el-icon>
+              <span>{{ item.name }}</span>
             </template>
             <el-menu-item
               v-for="child in item.children"
-              :key="child.path"
+              :key="child.id"
               :index="child.path"
             >
-              <el-icon><component :is="child.icon" /></el-icon>
-              <span>{{ child.title }}</span>
+              <el-icon><component :is="child.icon || 'Menu'" /></el-icon>
+              <span>{{ child.name }}</span>
             </el-menu-item>
           </el-sub-menu>
 
           <!-- 单个菜单项 -->
           <el-menu-item v-else :index="item.path">
-            <el-icon><component :is="item.icon" /></el-icon>
-            <span>{{ item.title }}</span>
+            <el-icon><component :is="item.icon || 'Menu'" /></el-icon>
+            <span>{{ item.name }}</span>
           </el-menu-item>
         </template>
       </el-menu>
@@ -48,6 +48,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getSystemConfig } from '@/api/system'
 import { useUserStore } from '@/stores/user'
+import type { MenuNode } from '@/types'
 
 defineProps<{ collapsed: boolean }>()
 
@@ -72,43 +73,15 @@ onMounted(async () => {
   }
 })
 
-/** 菜单配置 - 与路由表对应；adminOnly 标记仅超级管理员可见 */
-interface MenuItem {
-  path: string
-  title: string
-  icon: string
-  adminOnly?: boolean
-  children?: MenuItem[]
-}
-
 const userStore = useUserStore()
-const isAdmin = computed(() => userStore.roles.includes('ROLE_ADMIN'))
 
-const allMenuItems: MenuItem[] = [
-  { path: '/dashboard', title: '首页', icon: 'Odometer' },
-  { path: '/ai', title: 'AI 问答', icon: 'ChatDotRound' },
-  { path: '/user', title: '用户管理', icon: 'User', adminOnly: true },
-  { path: '/knowledge', title: '知识库管理', icon: 'FolderOpened', adminOnly: true },
-  { path: '/document', title: '文档管理', icon: 'Document', adminOnly: true },
-  {
-    path: '/permission-group',
-    title: '权限管理',
-    icon: 'Lock',
-    adminOnly: true,
-    children: [
-      { path: '/role', title: '角色管理', icon: 'UserFilled' },
-      { path: '/permission', title: '菜单权限', icon: 'Lock' },
-      { path: '/user-role', title: '用户角色绑定', icon: 'Connection' },
-    ],
-  },
-  { path: '/settings', title: '系统设置', icon: 'Setting', adminOnly: true },
-]
+/** 动态菜单树：由后端 /me/access 返回（基于角色绑定的 menu 权限） */
+const menuItems = computed<MenuNode[]>(() => userStore.menus)
 
-/** 按角色过滤菜单：普通用户仅保留首页、AI 问答 */
-const menuItems = computed<MenuItem[]>(() => {
-  if (isAdmin.value) return allMenuItems
-  return allMenuItems.filter((item) => !item.adminOnly)
-})
+/** 判断节点是否为分组：含子菜单即可视为分组（父分组自身不需要可跳转路径） */
+function isGroup(node: MenuNode) {
+  return !!node.children?.length
+}
 </script>
 
 <style scoped>

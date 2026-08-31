@@ -1,5 +1,5 @@
 import request from './request'
-import type { Role, PageResult, PageQuery } from '@/types'
+import type { Role, Permission, PageResult, PageQuery } from '@/types'
 
 /** 分页查询角色列表 */
 export function pageRoles(params: PageQuery) {
@@ -39,4 +39,9 @@ export function getRolePermissions(id: string) {
 /** 为角色分配权限 */
 export function assignRolePermissions(id: string, permissionIds: string[]) {
   return request.post(`/roles/${id}/permissions`, permissionIds)
+}
+
+/** 获取所有启用的权限列表（供角色分配使用） */
+export function listPermissions() {
+  return request.get<Permission[], Permission[]>('/roles/permissions/list')
 }

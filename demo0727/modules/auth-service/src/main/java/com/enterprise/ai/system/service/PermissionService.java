@@ -2,6 +2,7 @@ package com.enterprise.ai.system.service;
 
 import com.enterprise.ai.system.entity.Permission;
 import com.enterprise.ai.system.entity.Role;
+import com.enterprise.ai.system.vo.MenuNode;
 
 import java.util.List;
 
@@ -27,6 +28,16 @@ public interface PermissionService {
     List<Permission> getUserPermissions(Long userId);
 
     /**
+     * 获取用户拥有的权限码集合
+     */
+    List<String> getUserPermissionCodes(Long userId);
+
+    /**
+     * 构建当前用户的动态菜单树（基于角色绑定的 menu 类型权限）
+     */
+    List<MenuNode> getUserMenus(Long userId);
+
+    /**
      * 获取角色的权限列表
      */
     List<Permission> getRolePermissions(Long roleId);
@@ -50,4 +61,9 @@ public interface PermissionService {
      * 检查用户是否拥有指定角色
      */
     boolean hasRole(Long userId, String roleCode);
+
+    /**
+     * 获取所有启用的权限（供角色分配页面查询）
+     */
+    List<Permission> listAllPermissions();
 }

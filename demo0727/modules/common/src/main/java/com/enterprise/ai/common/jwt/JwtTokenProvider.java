@@ -40,10 +40,21 @@ public class JwtTokenProvider {
      *              @PreAuthorize("hasRole('ADMIN')") 才能匹配）
      */
     public String generateAccessToken(Long userId, String username, List<String> roles) {
+        return generateAccessToken(userId, username, roles, Collections.emptyList());
+    }
+
+    /**
+     * 生成 Access Token（含权限码）
+     * @param roles 角色编码列表，形如 ["ROLE_ADMIN"]
+     * @param permissions 权限码列表，形如 ["menu:knowledge","menu:role"]，
+     *                    供下游服务按权限码鉴权 @PreAuthorize("hasAuthority('menu:xxx')")
+     */
+    public String generateAccessToken(Long userId, String username, List<String> roles, List<String> permissions) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
         claims.put("roles", roles);
+        claims.put("permissions", permissions);
         claims.put("type", "access");
 
         return Jwts.builder()
@@ -59,10 +70,20 @@ public class JwtTokenProvider {
      * 生成 Refresh Token（同样内嵌 roles，刷新重签 access token 时沿用）
      */
     public String generateRefreshToken(Long userId, String username, List<String> roles) {
+        return generateRefreshToken(userId, username, roles, Collections.emptyList());
+    }
+
+    /**
+     * 生成 Refresh Token（含权限码）
+     * @param roles 角色编码列表，形如 ["ROLE_ADMIN"]
+     * @param permissions 权限码列表，形如 ["menu:knowledge","menu:role"]
+     */
+    public String generateRefreshToken(Long userId, String username, List<String> roles, List<String> permissions) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
         claims.put("roles", roles);
+        claims.put("permissions", permissions);
         claims.put("type", "refresh");
 
         return Jwts.builder()
@@ -160,6 +181,24 @@ public class JwtTokenProvider {
             Object roles = claims.get("roles");
             if (roles instanceof List) {
                 return ((List<?>) roles).stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.toList());
+            }
+            return Collections.emptyList();
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 从 Token 中获取权限码列表（无 permissions claim 时返回空列表）
+     */
+    public List<String> getPermissionsFromToken(String token) {
+        try {
+            Claims claims = getClaimsFromToken(token);
+            Object permissions = claims.get("permissions");
+            if (permissions instanceof List) {
+                return ((List<?>) permissions).stream()
                     .map(String::valueOf)
                     .collect(Collectors.toList());
             }

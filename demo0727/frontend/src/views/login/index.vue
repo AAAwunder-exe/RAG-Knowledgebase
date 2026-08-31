@@ -154,6 +154,12 @@ async function handleLogin() {
     loading.value = true
     const res = await login(loginForm)
     userStore.loginSuccess(res.accessToken, res.refreshToken, res.user)
+    // 加载动态菜单与权限码
+    try {
+      await userStore.loadAccess()
+    } catch {
+      // 菜单加载失败不阻塞登录，后续路由守卫会兜底重试
+    }
     ElMessage.success('登录成功')
     router.push('/')
   } catch (error) {

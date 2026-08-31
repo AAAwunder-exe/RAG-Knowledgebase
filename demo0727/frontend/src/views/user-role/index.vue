@@ -73,9 +73,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { pageUsers } from '@/api/user'
+import { pageUsers, getUserRoles, assignUserRoles } from '@/api/user'
 import { listRoles } from '@/api/role'
-import { getUserRoles, assignUserRoles } from '@/api/permission'
 import type { UserVO, Role } from '@/types'
 
 /** 用户列表数据 */

@@ -67,6 +67,9 @@ CREATE TABLE sys_permission (
     id BIGINT NOT NULL COMMENT '主键 ID',
     permission_name VARCHAR(50) NOT NULL COMMENT '权限名称',
     permission_code VARCHAR(100) NOT NULL COMMENT '权限编码（唯一标识）',
+    path VARCHAR(200) DEFAULT NULL COMMENT '前端路由路径（menu 类型使用）',
+    component VARCHAR(200) DEFAULT NULL COMMENT '前端组件路径（menu 类型使用）',
+    icon VARCHAR(100) DEFAULT NULL COMMENT '菜单图标（Element Plus 图标名）',
     permission_type VARCHAR(20) NOT NULL DEFAULT 'api' COMMENT '权限类型：menu-菜单，button-按钮，api-接口',
     parent_id BIGINT DEFAULT NULL COMMENT '父级 ID',
     sort INT NOT NULL DEFAULT 0 COMMENT '排序',
@@ -160,6 +163,19 @@ INSERT INTO sys_permission (id, permission_name, permission_code, permission_typ
 (60, 'AI 问答', 'api:ai:ask', 'api', 'AI 问答接口'),
 (61, '创建 Embedding', 'api:ai:embedding', 'api', 'Embedding 接口');
 
+-- 初始化菜单权限数据（type=menu，驱动前端动态菜单，parent_id 形成树）
+INSERT INTO sys_permission (id, permission_name, permission_code, path, component, icon, permission_type, parent_id, sort, description) VALUES
+(1001, '首页', 'menu:dashboard',     '/dashboard', '/dashboard/index.vue', 'Odometer', 'menu', NULL, 1, '控制台首页'),
+(1002, 'AI 问答', 'menu:ai',         '/ai',         '/ai/index.vue',         'ChatDotRound', 'menu', NULL, 2, 'AI 智能问答'),
+(1003, '用户管理', 'menu:user',       '/user',       '/user/index.vue',       'User', 'menu', NULL, 3, '用户管理'),
+(1004, '知识库管理', 'menu:knowledge', '/knowledge', '/knowledge/index.vue', 'FolderOpened', 'menu', NULL, 4, '知识库管理'),
+(1005, '文档管理', 'menu:document',   '/document',   '/document/index.vue',   'Document', 'menu', NULL, 5, '文档管理'),
+(1006, '权限管理', 'menu:permission', NULL, NULL, 'Lock', 'menu', NULL, 6, '权限管理分组'),
+(1007, '角色管理', 'menu:role',       '/role',       '/role/index.vue',       'UserFilled', 'menu', 1006, 1, '角色管理'),
+(1008, '菜单权限', 'menu:permission-list', '/permission', '/permission/index.vue', 'Lock', 'menu', 1006, 2, '菜单权限管理'),
+(1009, '用户角色绑定', 'menu:user-role', '/user-role', '/user-role/index.vue', 'Connection', 'menu', 1006, 3, '用户角色绑定'),
+(1010, '系统设置', 'menu:settings',   '/settings',   '/settings/index.vue',   'Setting', 'menu', NULL, 7, '系统设置');
+
 -- 为超级管理员分配所有权限（id 由 ROW_NUMBER 生成，避免 1364 报错）
 INSERT INTO sys_role_permission (id, role_id, permission_id)
 SELECT ROW_NUMBER() OVER (ORDER BY id), 1, id FROM sys_permission WHERE status = 1;
@@ -169,6 +185,9 @@ INSERT INTO sys_role_permission (id, role_id, permission_id) VALUES
 (100, 2, 1), (101, 2, 2), (102, 2, 3), (103, 2, 4), (104, 2, 5),
 (105, 2, 10), (106, 2, 20), (107, 2, 30), (108, 2, 31), (109, 2, 40),
 (110, 2, 41), (111, 2, 50), (112, 2, 60);
+-- 普通员工可见菜单：首页 + AI 问答
+INSERT INTO sys_role_permission (id, role_id, permission_id) VALUES
+(113, 2, 1001), (114, 2, 1002);
 
 -- 初始化管理员用户（密码: admin123，BCrypt 加密）
 INSERT INTO sys_user (id, username, password, real_name, email, phone, status) VALUES

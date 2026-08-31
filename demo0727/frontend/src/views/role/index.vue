@@ -57,6 +57,7 @@
     <el-dialog v-model="permDialogVisible" title="分配权限" width="450px">
       <el-tree
         ref="treeRef"
+        :key="permTreeKey"
         :data="permissionTree"
         :props="{ label: 'permissionName', children: 'children' }"
         show-checkbox
@@ -80,8 +81,7 @@ import SearchForm from '@/components/SearchForm.vue'
 import BaseTable, { type TableColumn } from '@/components/BaseTable.vue'
 import Pagination from '@/components/Pagination.vue'
 import DialogForm, { type FormField } from '@/components/DialogForm.vue'
-import { pageRoles, createRole, updateRole, deleteRole, getRolePermissions, assignRolePermissions } from '@/api/role'
-import { listPermissions } from '@/api/permission'
+import { pageRoles, createRole, updateRole, deleteRole, getRolePermissions, assignRolePermissions, listPermissions } from '@/api/role'
 import type { Role, Permission } from '@/types'
 
 const queryData = reactive({
@@ -196,30 +196,56 @@ const permDialogVisible = ref(false)
 const checkedKeys = ref<string[]>([])
 const currentRoleId = ref<string>()
 const permissionTree = ref<any[]>([])
+// 树重建计数：每次打开弹窗 +1，强制 el-tree 重新挂载，确保 default-checked-keys 生效
+const permTreeKey = ref(0)
+// el-tree 实例：对应模板 ref="treeRef"，用于提交时读取勾选状态
+const treeRef = ref()
 
-/** 加载权限树（懒加载，首次打开弹窗前拉取） */
+/** 把后端返回的 parentId（可能为 "null" 字符串 / null / 0 / 空串）统一为空串表示根 */
+function parentKey(v: any): string {
+  if (v === null || v === undefined) return ''
+  const s = String(v)
+  return (s === 'null' || s === '0') ? '' : s
+}
+
+/** 加载权限树（每次打开强制刷新，避免缓存残留） */
 async function loadPermissionTree() {
-  if (permissionTree.value.length > 0) return
   const perms: Permission[] = await listPermissions()
-  // 顶层 parentId 为 null 或 0，用 !p.parentId 过滤
+  // 顶层：parentId 为空 / null / 0 作为根节点
   permissionTree.value = perms
-    .filter((p) => !p.parentId)
+    .filter((p) => !parentKey(p.parentId))
     .map((p) => ({
       ...p,
-      children: perms.filter((c) => c.parentId === p.id),
+      // 子节点匹配：强转字符串，兼容 Long/Number/String 不同序列化
+      children: perms.filter((c) => parentKey(c.parentId) === String(p.id)),
     }))
 }
 
 async function handlePermission(row: Role) {
-  currentRoleId.value = row.id
-  await loadPermissionTree()
-  // 回填已分配权限
-  checkedKeys.value = await getRolePermissions(row.id)
+  const roleId = row.id
+  // 先并行加载树与已分配的权限，全部就绪后再一次性变更状态。
+  // 不能先改 currentRoleId：否则 :key 提前变化会让树用空数据重挂载，default-checked-keys 永不再生效（刷新后勾选不显示）。
+  const [keys] = await Promise.all([
+    getRolePermissions(roleId),
+    loadPermissionTree(),
+  ])
+  currentRoleId.value = roleId
+  checkedKeys.value = keys
+  permTreeKey.value++ // 强制重建树，让本期数据+勾选一起生效
   permDialogVisible.value = true
 }
 
 async function handlePermSubmit() {
-  await assignRolePermissions(currentRoleId.value!, checkedKeys.value)
+  const tree = treeRef.value
+  if (!tree) return
+  // 从树实例读取当前勾选状态（含半选的父菜单），不能用打开弹窗时的旧 checkedKeys
+  const ids = [
+    ...(tree.getCheckedKeys() as string[]),
+    ...(tree.getHalfCheckedKeys() as string[]),
+  ]
+  await assignRolePermissions(currentRoleId.value!, ids)
+  // 同步最新分配结果，避免下次打开时回填旧勾选
+  checkedKeys.value = ids
   ElMessage.success('权限分配成功')
   permDialogVisible.value = false
 }

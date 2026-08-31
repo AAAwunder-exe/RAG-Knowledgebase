@@ -138,11 +138,15 @@ const dialogFormData = reactive<Record<string, any>>({
   status: 1,
 })
 
-/** 弹窗字段：新增时显示密码，编辑时不显示 */
+/** 弹窗字段：密码始终显示（编辑时留空则不修改） */
 const dialogFields = computed<FormField[]>(() => {
-  const base: FormField[] = [
+  const isEdit = !!dialogFormData.id
+  return [
     { prop: 'username', label: '用户名', type: 'input' },
-    ...(dialogFormData.id ? [] : [{ prop: 'password', label: '密码', type: 'password' as const }]),
+    {
+      prop: 'password', label: '密码', type: 'password',
+      placeholder: isEdit ? '留空则不修改密码' : '请输入密码',
+    },
     { prop: 'realName', label: '真实姓名', type: 'input' },
     { prop: 'email', label: '邮箱', type: 'input' },
     { prop: 'phone', label: '手机号', type: 'input' },
@@ -154,18 +158,23 @@ const dialogFields = computed<FormField[]>(() => {
       ],
     },
   ]
-  return base
 })
 
-const dialogRules: Record<string, FormItemRule[]> = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码长度必须在 6-20 个字符之间', trigger: 'blur' },
-  ],
-  realName: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
-  email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
-}
+const dialogRules = computed<Record<string, FormItemRule[]>>(() => {
+  const isEdit = !!dialogFormData.id
+  return {
+    username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+    // 编辑时密码非必填（留空则不修改）；新增时必须填写
+    password: isEdit
+      ? [{ min: 6, max: 20, message: '密码长度必须在 6-20 个字符之间', trigger: 'blur' }]
+      : [
+          { required: true, message: '请输入密码', trigger: 'blur' },
+          { min: 6, max: 20, message: '密码长度必须在 6-20 个字符之间', trigger: 'blur' },
+        ],
+    realName: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
+    email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
+  }
+})
 
 /** 新增 */
 function handleAdd() {
@@ -194,8 +203,8 @@ async function handleSubmit() {
     status: dialogFormData.status,
   }
   if (dialogFormData.id) {
-    // 编辑：不传用户名和密码
-    const { username, password, ...updateData } = data
+    // 编辑：不传用户名；密码留空则后端不改
+    const { username, ...updateData } = data
     await updateUser(dialogFormData.id, updateData)
     ElMessage.success('编辑成功')
   } else {

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { refreshSession } from '@/api/request'
+import type { MenuNode } from '@/types'
 
 /** 路由表定义 */
 const routes: RouteRecordRaw[] = [
@@ -52,12 +53,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '角色管理', icon: 'UserFilled', parent: '权限管理' },
       },
       {
-        path: 'permission',
-        name: 'Permission',
-        component: () => import('@/views/permission/index.vue'),
-        meta: { title: '菜单权限', icon: 'Lock', parent: '权限管理' },
-      },
-      {
         path: 'user-role',
         name: 'UserRole',
         component: () => import('@/views/user-role/index.vue'),
@@ -84,10 +79,20 @@ const router = createRouter({
   routes,
 })
 
-/** 仅超级管理员可访问的页面（需与后端 @PreAuthorize("hasRole('ADMIN')") 保持一致） */
-const adminPaths = ['/user', '/knowledge', '/document', '/role', '/permission', '/user-role', '/settings']
+/** 从动态菜单树递归收集当前用户可访问的路由路径集合 */
+function collectMenuPaths(menus: MenuNode[]): Set<string> {
+  const paths = new Set<string>()
+  const walk = (nodes: MenuNode[]) => {
+    for (const node of nodes) {
+      if (node.path) paths.add(node.path)
+      if (node.children?.length) walk(node.children)
+    }
+  }
+  walk(menus)
+  return paths
+}
 
-/** 全局前置守卫 - 登录鉴权 + 静默续期 + 角色权限控制 */
+/** 全局前置守卫 - 登录鉴权 + 静默续期 + 基于权限码的动态菜单控制 */
 router.beforeEach(async (to, _from, next) => {
   const userStore = useUserStore()
 
@@ -108,9 +113,25 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
-  // 角色权限控制：非超级管理员访问管理页面时跳回首页
-  if (adminPaths.includes(to.path) && !userStore.roles.includes('ROLE_ADMIN')) {
-    next('/dashboard')
+  // 已登录但动态菜单尚未加载（本地刷新/续期未成功）→ 兜底拉取
+  if (userStore.menus.length === 0) {
+    try {
+      await userStore.loadAccess()
+    } catch {
+      next('/login')
+      return
+    }
+  }
+
+  // 基于权限的动态路由控制：路径不在用户菜单内（且非隐藏路由）→ 回到首个可访问菜单
+  const allowed = collectMenuPaths(userStore.menus)
+  const firstPath = [...allowed][0] || '/dashboard'
+  if (to.meta.hidden) {
+    next()
+    return
+  }
+  if (to.path !== '/' && !allowed.has(to.path)) {
+    next(firstPath)
     return
   }
 

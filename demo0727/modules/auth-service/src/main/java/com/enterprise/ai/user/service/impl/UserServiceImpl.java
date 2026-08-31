@@ -125,12 +125,13 @@ public class UserServiceImpl implements UserService {
         user.setLockedUntil(null);
         userMapper.updateById(user);
 
-        // 生成 Token（内嵌角色，供网关透传与方法级鉴权。角色变更需等 token 过期/刷新后才生效，学习项目可接受）
+        // 生成 Token（内嵌角色与权限码，供网关透传与方法级鉴权。变更需等 token 过期/刷新后才生效，学习项目可接受）
         List<String> roleCodes = permissionService.getUserRoles(user.getId()).stream()
             .map(Role::getRoleCode)
             .collect(Collectors.toList());
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getUsername(), roleCodes);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getUsername(), roleCodes);
+        List<String> permissionCodes = permissionService.getUserPermissionCodes(user.getId());
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getUsername(), roleCodes, permissionCodes);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getUsername(), roleCodes, permissionCodes);
 
         // 将 Refresh Token 存入 Redis
         redisTemplate.opsForValue().set(
@@ -170,15 +171,13 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ResultCode.TOKEN_EXPIRED);
         }
 
-        // 生成新的 Access Token（沿用 refresh token 内嵌的 roles；
-        // 兼容改造前的旧 refresh token——无 roles claim 时回退查库）
-        List<String> roles = jwtTokenProvider.getRolesFromToken(refreshToken);
-        if (roles.isEmpty()) {
-            roles = permissionService.getUserRoles(userId).stream()
-                .map(Role::getRoleCode)
-                .collect(Collectors.toList());
-        }
-        String newAccessToken = jwtTokenProvider.generateAccessToken(userId, username, roles);
+        // 每次续期都从数据库重查角色与权限码，确保管理员刚调整的角色/权限分配立即生效。
+        // 不能沿用 refresh token 内嵌的权限码——否则分配变更后即使刷新页面也一直是旧权限（本 Bug 根因）。
+        List<String> roles = permissionService.getUserRoles(userId).stream()
+            .map(Role::getRoleCode)
+            .collect(Collectors.toList());
+        List<String> permissions = permissionService.getUserPermissionCodes(userId);
+        String newAccessToken = jwtTokenProvider.generateAccessToken(userId, username, roles, permissions);
 
         RefreshTokenVO vo = new RefreshTokenVO();
         vo.setAccessToken(newAccessToken);
@@ -327,6 +326,14 @@ public class UserServiceImpl implements UserService {
         if (updateDTO.getPhone() != null) user.setPhone(updateDTO.getPhone());
         if (updateDTO.getAvatar() != null) user.setAvatar(updateDTO.getAvatar());
         if (updateDTO.getStatus() != null) user.setStatus(updateDTO.getStatus());
+        // 密码：留空则不修改；非空时校验长度并重加密
+        if (StringUtils.hasText(updateDTO.getPassword())) {
+            String newPassword = updateDTO.getPassword();
+            if (newPassword.length() < 6 || newPassword.length() > 20) {
+                throw new BusinessException(ResultCode.PARAM_INVALID, "密码长度需在 6-20 个字符之间");
+            }
+            user.setPassword(passwordEncoder.encode(newPassword));
+        }
         userMapper.updateById(user);
 
         log.info("管理员更新用户: id={}", id);
