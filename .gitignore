@@ -39,3 +39,12 @@ logs/
 *.iml
 .DS_Store
 Thumbs.db
+
+# ==================== AI 工具本地配置 ====================
+# 本地编辑器/Agent 配置，按各开发者习惯，不入库
+.claude/
+CLAUDE.md
+AGENTS.md
+.trae/
+.cursor/
+.copilot/
