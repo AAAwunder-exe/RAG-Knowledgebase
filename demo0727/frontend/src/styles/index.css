@@ -1,0 +1,169 @@
+/* ==================== CSS 变量定义 ==================== */
+:root {
+  /* 主题色 - 低饱和度蓝色 */
+  --primary-color: #4a7afe;
+  --primary-light: #6b94ff;
+  --primary-dark: #3a62d4;
+  --primary-bg: #eef3ff;
+
+  /* 中性色 */
+  --text-primary: #1a1d29;
+  --text-regular: #4e5969;
+  --text-secondary: #86909c;
+  --text-placeholder: #c9cdd4;
+
+  /* 背景色 */
+  --bg-page: #f5f6f8;
+  --bg-card: #ffffff;
+  --bg-hover: #f7f8fa;
+  --bg-sidebar: #ffffff;
+
+  /* 边框色 */
+  --border-light: #f0f1f3;
+  --border-base: #e5e6eb;
+  --border-dark: #d1d5db;
+
+  /* 状态色 */
+  --success-color: #00b42a;
+  --success-bg: #e8ffea;
+  --warning-color: #ff9a2e;
+  --warning-bg: #fff7e8;
+  --danger-color: #f5394c;
+  --danger-bg: #ffece8;
+  --info-color: #86909c;
+  --info-bg: #f7f8fa;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+  /* 布局尺寸 */
+  --sidebar-width: 220px;
+  --sidebar-collapsed-width: 64px;
+  --header-height: 56px;
+}
+
+/* ==================== 全局重置 ==================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  font-size: 14px;
+  color: var(--text-primary);
+  background-color: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+/* ==================== 滚动条美化 ==================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c9cdd4;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b3b8c2;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ==================== 通用工具类 ==================== */
+.page-container {
+  padding: 20px;
+}
+
+.card-section {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==================== Element Plus 样式覆盖 ==================== */
+.el-card {
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.el-table {
+  --el-table-border-color: var(--border-light);
+  --el-table-header-bg-color: var(--bg-hover);
+  --el-table-header-text-color: var(--text-regular);
+}
+
+.el-table th.el-table__cell {
+  font-weight: 500;
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--primary-color);
+  --el-button-border-color: var(--primary-color);
+  --el-button-hover-bg-color: var(--primary-light);
+  --el-button-hover-border-color: var(--primary-light);
+}
+
+.el-pagination {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* 过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}

@@ -1,0 +1,41 @@
+# ==================== Python / RAG 引擎 ====================
+# Python 虚拟环境（体积巨大，绝不入库）
+Atest/rag_env/
+venv/
+env/
+.venv/
+
+# Python 编译缓存
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# ==================== 前端 ====================
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ==================== Java / Maven ====================
+target/
+*.class
+*.jar
+*.war
+
+# ==================== 运行时数据 / 索引 ====================
+# FAISS 索引、chunks、meta 等持久化数据（重建即可，无需入库）
+*.index
+*.pkl
+knowledge/
+
+# ==================== 日志 ====================
+logs/
+*.log
+
+# ==================== IDE / OS ====================
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

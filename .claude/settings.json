@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(file src/views/*/index.vue)",
+      "Bash(file src/components/*.vue)",
+      "Bash(mkdir -p modules/common/src/main/java/com/enterprise/ai/common modules/auth-service/src/main/java/com/enterprise/ai modules/auth-service/src/main/resources/db)",
+      "Bash(mv src/main/java/com/enterprise/ai modules/auth-service/src/main/java/com/enterprise/ai)",
+      "Bash(mv common/result/*.java ../../../common/src/main/java/com/enterprise/ai/common/result/)",
+      "Bash(mv common/entity/BaseEntity.java ../../../common/src/main/java/com/enterprise/ai/common/entity/)",
+      "Bash(mv common/annotation/OperationLog.java ../../../common/src/main/java/com/enterprise/ai/common/annotation/)",
+      "Bash(mv security/jwt/JwtTokenProvider.java ../../../common/src/main/java/com/enterprise/ai/common/jwt/)",
+      "Bash(mv security/context/SecurityContextUtils.java ../../../common/src/main/java/com/enterprise/ai/common/security/)",
+      "Bash(mv /d/AIfourOeight/demo0727/modules/auth-service/src/main/java/com/enterprise/ai/ai/ai/* /d/AIfourOeight/demo0727/modules/auth-service/src/main/java/com/enterprise/ai/ai/)",
+      "Bash(rmdir /d/AIfourOeight/demo0727/modules/auth-service/src/main/java/com/enterprise/ai/ai/ai)",
+      "Bash(mkdir -p /d/AIfourOeight/demo0727/modules/common/src/main/java/com/enterprise/ai/common/result /d/AIfourOeight/demo0727/modules/common/src/main/java/com/enterprise/ai/common/entity /d/AIfourOeight/demo0727/modules/common/src/main/java/com/enterprise/ai/common/annotation /d/AIfourOeight/demo0727/modules/common/src/main/java/com/enterprise/ai/common/jwt /d/AIfourOeight/demo0727/modules/common/src/main/java/com/enterprise/ai/common/security)",
+      "Bash(mv /d/AIfourOeight/demo0727/modules/auth-service/src/main/java/com/enterprise/ai/common/result/*.java /d/AIfourOeight/demo0727/modules/common/src/main/java/com/enterprise/ai/common/result/)",
+      "Bash(mv /d/AIfourOeight/demo0727/modules/auth-service/src/main/java/com/enterprise/ai/common/entity/BaseEntity.java /d/AIfourOeight/demo0727/modules/common/src/main/java/com/enterprise/ai/common/entity/)",
+      "Bash(mv /d/AIfourOeight/demo0727/modules/auth-service/src/main/java/com/enterprise/ai/common/annotation/OperationLog.java /d/AIfourOeight/demo0727/modules/common/src/main/java/com/enterprise/ai/common/annotation/)",
+      "Bash(mv /d/AIfourOeight/demo0727/modules/auth-service/src/main/java/com/enterprise/ai/security/jwt/JwtTokenProvider.java /d/AIfourOeight/demo0727/modules/common/src/main/java/com/enterprise/ai/common/jwt/)",
+      "Bash(mv src/main/resources/application.yml src/main/resources/application-dev.yml src/main/resources/application-prod.yml src/main/resources/logback-spring.xml modules/auth-service/src/main/resources/)",
+      "Bash(mv src/main/resources/db/schema.sql src/main/resources/db/fix_charset.sql modules/auth-service/src/main/resources/db/)",
+      "Bash(rmdir src/main/resources/db src/main/resources)",
+      "Bash(find modules/common/src/main/java/com/enterprise/ai -name *.java)"
+    ]
+  }
+}
