@@ -128,8 +128,9 @@ services:
       REDIS_KEY_PREFIX: "rag:cache:"
       # ========== LLM 配置（通过环境变量切换，支持任意 OpenAI 兼容 API） ==========
       # 真实 Key 必须放在 .env，禁止写入仓库；切换 LLM 只改 .env 即可
-      VLLM_BASE_URL: ${VLLM_BASE_URL:-https://api.moonshot.cn/v1}
-      VLLM_MODEL: ${VLLM_MODEL:-kimi-k2.6}
+      # 默认值对齐当前实际使用的智谱 GLM；如需切换其他服务商，改 .env 即可覆盖
+      VLLM_BASE_URL: ${VLLM_BASE_URL:-https://open.bigmodel.cn/api/paas/v4}
+      VLLM_MODEL: ${VLLM_MODEL:-glm-4.1v-thinking-flashx}
       VLLM_API_KEY: ${VLLM_API_KEY:?VLLM_API_KEY is required, set it in .env}
     depends_on:
       redis:
