@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="RAG Service",
-    description="企业 AI 知识平台 RAG 引擎（FAISS + BM25 + Reranker + Kimi kimi-k2.6）",
+    description=" AI 知识平台 RAG 引擎 ",
     version="1.1.0",
     lifespan=lifespan,
 )

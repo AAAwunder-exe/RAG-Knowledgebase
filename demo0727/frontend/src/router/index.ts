@@ -79,8 +79,15 @@ const router = createRouter({
   routes,
 })
 
-/** 从动态菜单树递归收集当前用户可访问的路由路径集合 */
+/** 缓存：菜单数组引用未变化时复用已构建的结构化 Set，避免每次路由切换重复遍历 */
+let cachedMenuRef: MenuNode[] | null = null
+let cachedPaths: Set<string> = new Set()
+
+/** 从动态菜单树递归收集当前用户可访问的路由路径集合（按 menus 引用缓存） */
 function collectMenuPaths(menus: MenuNode[]): Set<string> {
+  if (cachedMenuRef === menus) {
+    return cachedPaths
+  }
   const paths = new Set<string>()
   const walk = (nodes: MenuNode[]) => {
     for (const node of nodes) {
@@ -89,6 +96,8 @@ function collectMenuPaths(menus: MenuNode[]): Set<string> {
     }
   }
   walk(menus)
+  cachedMenuRef = menus
+  cachedPaths = paths
   return paths
 }
 

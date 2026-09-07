@@ -1,6 +1,7 @@
 package com.enterprise.ai.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.enterprise.ai.captcha.service.CaptchaService;
 import com.enterprise.ai.common.result.BusinessException;
@@ -224,7 +225,11 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ResultCode.USERNAME_NOT_FOUND);
         }
 
-        BeanUtils.copyProperties(updateDTO, user);
+        // 只更新非空字段，避免客户端省略字段时用 null 覆盖已有数据
+        if (updateDTO.getRealName() != null) user.setRealName(updateDTO.getRealName());
+        if (updateDTO.getEmail() != null) user.setEmail(updateDTO.getEmail());
+        if (updateDTO.getPhone() != null) user.setPhone(updateDTO.getPhone());
+        if (updateDTO.getAvatar() != null) user.setAvatar(updateDTO.getAvatar());
         userMapper.updateById(user);
 
         return convertToVO(user);
@@ -414,16 +419,18 @@ public class UserServiceImpl implements UserService {
     }
 
     private void handleLoginFail(User user) {
-        int failCount = user.getLoginFailCount() != null ? user.getLoginFailCount() : 0;
-        failCount++;
-        user.setLoginFailCount(failCount);
+        // 原子自增失败计数（setSql 表达式，避免并发登录失败读改写竞态绕过锁定）
+        userMapper.update(null, new LambdaUpdateWrapper<User>()
+            .eq(User::getId, user.getId())
+            .setSql("login_fail_count = COALESCE(login_fail_count, 0) + 1"));
 
-        if (failCount >= MAX_LOGIN_FAIL_COUNT) {
-            user.setLockedUntil(LocalDateTime.now().plusMinutes(LOCK_MINUTES));
+        int newCount = (user.getLoginFailCount() != null ? user.getLoginFailCount() : 0) + 1;
+        if (newCount >= MAX_LOGIN_FAIL_COUNT) {
+            userMapper.update(null, new LambdaUpdateWrapper<User>()
+                .eq(User::getId, user.getId())
+                .set(User::getLockedUntil, LocalDateTime.now().plusMinutes(LOCK_MINUTES)));
             log.warn("用户账户被锁定: {}, 锁定时间: {}分钟", user.getUsername(), LOCK_MINUTES);
         }
-
-        userMapper.updateById(user);
     }
 
     private UserVO convertToVO(User user) {

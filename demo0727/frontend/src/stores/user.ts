@@ -20,10 +20,22 @@ export const useUserStore = defineStore('user', () => {
   const accessToken = ref<string>('')
   // Refresh Token：单独持久化
   const refreshToken = ref<string>(localStorage.getItem(REFRESH_TOKEN_KEY) || '')
+
+  /** 安全读取持久化 JSON，损坏/旧格式时回退默认值，避免整个 store 初始化失败 */
+  function readStoredUser(): UserVO | null {
+    const raw = localStorage.getItem('userInfo')
+    if (!raw) return null
+    try {
+      return JSON.parse(raw) as UserVO
+    } catch {
+      // localStorage 被篡改或版本不兼容，忽略并回退
+      localStorage.removeItem('userInfo')
+      return null
+    }
+  }
+
   // 用户信息
-  const userInfo = ref<UserVO | null>(
-    localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')!) : null
-  )
+  const userInfo = ref<UserVO | null>(readStoredUser())
   // 动态菜单树（由 /me/access 加载）
   const menus = ref<MenuNode[]>([])
   // 权限码集合

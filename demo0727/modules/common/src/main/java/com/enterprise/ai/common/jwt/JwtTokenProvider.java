@@ -3,11 +3,14 @@ package com.enterprise.ai.security.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -19,9 +22,15 @@ import java.util.stream.Collectors;
  * JWT 工具类
  */
 @Component
-public class JwtTokenProvider {
+public class JwtTokenProvider implements InitializingBean {
 
-    @Value("${security.jwt.secret:enterprise-ai-platform-secret-key-2024}")
+    /** 仓库内置的开发默认密钥（仅限 dev 回退使用），生产必须通过 JWT_SECRET 覆盖 */
+    private static final String DEV_DEFAULT_SECRET = "enterprise-ai-platform-secret-key-2024-enterprise-ai-platform-secret-key";
+
+    /** HMAC-SHA 密钥最小字节数（HS256 要求 >= 256 bit） */
+    private static final int MIN_SECRET_BYTES = 32;
+
+    @Value("${security.jwt.secret}")
     private String jwtSecret;
 
     @Value("${security.jwt.expiration:86400000}")
@@ -29,6 +38,36 @@ public class JwtTokenProvider {
 
     @Value("${security.jwt.refresh-expiration:604800000}")
     private Long refreshTokenExpiration;
+
+    @Value("${spring.profiles.active:}")
+    private String activeProfiles;
+
+    /**
+     * 启动时校验密钥强度，避免弱密钥 / 内置默认密钥被用于生产环境。
+     * 若密钥为内置默认值且当前激活 prod profile，则直接拒绝启动（fail-fast）。
+     */
+    @Override
+    public void afterPropertiesSet() {
+        if (!StringUtils.hasText(jwtSecret)) {
+            throw new IllegalStateException("security.jwt.secret 未配置，请通过环境变量 JWT_SECRET 提供强随机密钥");
+        }
+        if (jwtSecret.getBytes(StandardCharsets.UTF_8).length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException("security.jwt.secret 长度不足 " + MIN_SECRET_BYTES +
+                    " 字节（HMAC-SHA256 要求 >= 32 字节），请配置更强的随机密钥");
+        }
+        if (isProdProfile() && DEV_DEFAULT_SECRET.equals(jwtSecret)) {
+            throw new IllegalStateException("生产环境禁止使用内置默认 JWT secret，请通过环境变量 JWT_SECRET 配置随机密钥");
+        }
+    }
+
+    private boolean isProdProfile() {
+        if (!StringUtils.hasText(activeProfiles)) {
+            return false;
+        }
+        return Arrays.stream(activeProfiles.split(","))
+                .map(String::trim)
+                .anyMatch("prod"::equalsIgnoreCase);
+    }
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));

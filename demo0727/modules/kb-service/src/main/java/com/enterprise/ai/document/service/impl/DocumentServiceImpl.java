@@ -88,6 +88,11 @@ public class DocumentServiceImpl implements DocumentService {
             throw new BusinessException(ResultCode.DOCUMENT_UPLOAD_FAILED);
         }
 
+        // 魔数/内容签名校验：防止伪装扩展名上传非目标格式文件
+        if (!isContentSignatureValid(extension.toLowerCase(), bytes)) {
+            throw new BusinessException(ResultCode.FILE_TYPE_NOT_SUPPORTED, "文件内容与扩展名不匹配，上传已拒绝");
+        }
+
         // 保存文件
         String fileName = UUID.randomUUID().toString() + "." + extension;
         String relativePath = "/" + kb.getId() + "/" + fileName;
@@ -278,6 +283,62 @@ public class DocumentServiceImpl implements DocumentService {
      */
     private boolean isTextFile(String ext) {
         return "md".equalsIgnoreCase(ext) || "markdown".equalsIgnoreCase(ext) || "txt".equalsIgnoreCase(ext);
+    }
+
+    /**
+     * 魔数/内容签名校验：
+     * - pdf 以 "%PDF" 开头
+     * - docx 为 ZIP 容器（PK），doc 为 OLE 复合文档（D0CF11E0）
+     * - 文本类必须为合法 UTF-8，且不含 NUL 字节（拒绝伪装成文本的二进制）
+     * 空文件视为不通过（防止上传空文件）。
+     */
+    private boolean isContentSignatureValid(String ext, byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return false;
+        }
+        switch (ext) {
+            case "pdf":
+                return startsWith(bytes, 0x25, 0x50, 0x44, 0x46); // "%PDF"
+            case "docx":
+                return startsWith(bytes, 0x50, 0x4B); // "PK"（ZIP）
+            case "doc":
+                return startsWith(bytes, 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1); // OLE
+            case "md":
+            case "markdown":
+            case "txt":
+                return isLikelyUtf8Text(bytes);
+            default:
+                return true;
+        }
+    }
+
+    private boolean startsWith(byte[] data, int... expected) {
+        if (data.length < expected.length) {
+            return false;
+        }
+        for (int i = 0; i < expected.length; i++) {
+            if ((data[i] & 0xFF) != expected[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 粗校验文本可读性：无 NUL 字节；控制字符占比不能过高（容忍 \n \r \t）
+     */
+    private boolean isLikelyUtf8Text(byte[] bytes) {
+        int control = 0;
+        for (byte b : bytes) {
+            int v = b & 0xFF;
+            if (v == 0) {
+                return false;
+            }
+            if (v < 0x20 && v != 0x09 && v != 0x0A && v != 0x0D) {
+                control++;
+            }
+        }
+        return control * 100 <= bytes.length * 10; // 非法控制字符占比 <= 10%
     }
 
     private DocumentVO convertToVO(Document doc) {

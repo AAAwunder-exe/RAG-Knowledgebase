@@ -12,10 +12,28 @@ export interface AiChatMessage {
 /** sessionStorage key：同标签页内刷新仍保留；登出时 clearMessages 清空；关闭标签页自动释放 */
 const STORAGE_KEY = 'ai_chat_messages'
 
+/** 保留的最大消息条数（超出丢弃最旧的） */
+const MAX_MESSAGE_COUNT = 60
+/** 单条消息内容最大长度（超出截断，防止 sessionStorage 溢出） */
+const MAX_CONTENT_LENGTH = 20000
+
+/** 规范化单条消息：内容截断 + 归一化，避免字段缺失 */
+function normalizeMessage(msg: AiChatMessage): AiChatMessage {
+  const content = msg.content.length > MAX_CONTENT_LENGTH
+    ? msg.content.slice(0, MAX_CONTENT_LENGTH) + '…'
+    : msg.content
+  return { role: msg.role, content, references: msg.references }
+}
+
 function load(): AiChatMessage[] {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as AiChatMessage[]) : []
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as AiChatMessage[]
+    // 旧数据可能超过上限，读取时同样裁剪，避免 sessionStorage 溢出
+    return Array.isArray(parsed)
+      ? parsed.slice(-MAX_MESSAGE_COUNT).map(normalizeMessage)
+      : []
   } catch {
     return []
   }
@@ -33,7 +51,11 @@ export const useAiStore = defineStore('ai', () => {
   const messages = ref<AiChatMessage[]>(load())
 
   function addMessage(msg: AiChatMessage) {
-    messages.value.push(msg)
+    messages.value.push(normalizeMessage(msg))
+    // 只保留最近 MAX_MESSAGE_COUNT 条，防止会话无限增长撑爆 sessionStorage
+    if (messages.value.length > MAX_MESSAGE_COUNT) {
+      messages.value = messages.value.slice(messages.value.length - MAX_MESSAGE_COUNT)
+    }
     save(messages.value)
   }
 

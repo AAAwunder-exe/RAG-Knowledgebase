@@ -15,15 +15,17 @@ spring:
         server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
 
     gateway:
-      # 全局 CORS（镜像原单体 SecurityConfig 的全放开配置）
+      # 全局 CORS
+      # 认证基于 Bearer token（存请求头），不依赖 Cookie，故 allowCredentials: false
+      # 允许来源通过 CORS_ALLOWED_ORIGINS 收敛（逗号分隔），默认放开本机前端端口
       globalcors:
         add-to-simple-url-handler-mapping: true
         cors-configurations:
           '[/**]':
-            allowedOriginPatterns: "*"
+            allowedOriginPatterns: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:8080}
             allowedMethods: "*"
             allowedHeaders: "*"
-            allowCredentials: true
+            allowCredentials: false
             maxAge: 3600
 
       # 路由级响应超时（毫秒）。上传/RAG 索引/AI 问答较慢，单独放宽到 5 分钟
@@ -42,10 +44,10 @@ spring:
           metadata:
             response-timeout: 300000
 
-# JWT 密钥：必须与 auth-service 完全一致（此处为 dev profile 值）
+# JWT 密钥：必须与 auth-service 完全一致（此处为 dev 回退值，生产必须用 JWT_SECRET 覆盖）
 security:
   jwt:
-    secret: ${JWT_SECRET:dev-secret-key-2024-enterprise-ai-platform-dev-secret-key-very-long}
+    secret: ${JWT_SECRET:enterprise-ai-platform-secret-key-2024-enterprise-ai-platform-secret-key}
 
 # ==================== Actuator ====================
 management:

@@ -25,6 +25,7 @@ import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,9 +50,23 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /** 与 auth-service 的 security.jwt.secret 保持一致（dev profile 值） */
-    @Value("${security.jwt.secret:dev-secret-key-2024-enterprise-ai-platform-dev-secret-key-very-long}")
+    /** 与 auth-service 的 security.jwt.secret 保持一致（dev 回退值，生产须用 JWT_SECRET 覆盖） */
+    @Value("${security.jwt.secret}")
     private String jwtSecret;
+
+    /** HMAC-SHA256 密钥最小字节数 */
+    private static final int MIN_SECRET_BYTES = 32;
+
+    /**
+     * 启动时校验密钥：缺失或过短直接拒绝启动，杜绝弱密钥/默认密钥上线。
+     */
+    @PostConstruct
+    void validateSecret() {
+        if (jwtSecret == null || jwtSecret.getBytes(StandardCharsets.UTF_8).length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException("security.jwt.secret 未配置或长度不足 " + MIN_SECRET_BYTES
+                    + " 字节，请通过环境变量 JWT_SECRET 提供强随机密钥");
+        }
+    }
 
     /** 放行路径前缀（无需 token，但仍剥离伪造 X-User-*） */
     private static final List<String> WHITE_LIST = List.of(
