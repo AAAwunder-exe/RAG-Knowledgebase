@@ -70,13 +70,13 @@
     <logger name="org.springframework" level="WARN"/>
     <logger name="org.hibernate" level="WARN"/>
     <!-- MyBatis：WARN，SQL 调试时临时开 DEBUG -->
-    <logger name="com.example.demo0727.mapper" level="WARN"/>
+    <logger name="com.enterprise.ai.mapper" level="WARN"/>
     <!-- 业务日志：INFO 级别，按需开 DEBUG -->
-    <logger name="com.example.demo0727" level="INFO">
+    <logger name="com.enterprise.ai" level="INFO">
         <appender-ref ref="BIZ_FILE"/>
     </logger>
     <!-- 操作日志切面：开 INFO，每次用户操作都有记录 -->
-    <logger name="com.example.demo0727.aspect" level="INFO"/>
+    <logger name="com.enterprise.ai.aspect" level="INFO"/>
 
     <!-- 根级别：INFO -->
     <root level="INFO">

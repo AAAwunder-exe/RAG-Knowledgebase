@@ -1,6 +1,6 @@
 # ==================== Python / RAG 引擎 ====================
 # Python 虚拟环境（体积巨大，绝不入库）
-Atest/rag_env/
+rag-engine/rag_env/
 venv/
 env/
 .venv/

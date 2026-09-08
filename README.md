@@ -1,17 +1,17 @@
 # RAG-Knowledgebase
 
-一个基于**微服务架构**的 AI 知识库管理平台，核心是「知识库管理 + RAG 智能问答」，并附完整的 RBAC 用户权限体系。主要代码位于 [demo0727/](file:///d:/AIfourOeight/demo0727)，根目录另有 [Atest/](file:///d:/AIfourOeight/Atest)（Python RAG 引擎源码）。
+一个基于**微服务架构**的 AI 知识库管理平台，核心是「知识库管理 + RAG 智能问答」，并附完整的 RBAC 用户权限体系。主要代码位于 [platform/](file:///d:/AIfourOeight/platform)，根目录另有 [rag-engine/](file:///d:/AIfourOeight/rag-engine)（Python RAG 引擎源码）。
 
 ### 技术栈
-- **前端**：Vue 3 + TypeScript + Vite + Pinia + Element Plus + ECharts（[package.json](file:///d:/AIFourOeight/demo0727/frontend/package.json)）
-- **后端**：Spring Boot 3.4 / Spring Cloud 2024 + Spring Cloud Alibaba + Nacos，Java 17，Maven 多模块（[pom.xml](file:///d:/AIFourOeight/demo0727/pom.xml)）
+- **前端**：Vue 3 + TypeScript + Vite + Pinia + Element Plus + ECharts（[package.json](file:///d:/AIfourOeight/platform/frontend/package.json)）
+- **后端**：Spring Boot 3.4 / Spring Cloud 2024 + Spring Cloud Alibaba + Nacos，Java 17，Maven 多模块（[pom.xml](file:///d:/AIfourOeight/platform/pom.xml)）
 - **基础设施**：MySQL 8（双 schema）、Redis 7、Nginx，全部经 Docker Compose 编排
 - **RAG 引擎**：Python + SentenceTransformer / bge 系列 embedding + reranker，对接 LLM（Moonshot Kimi 等，OpenAI 兼容 API）
 
 ### 架构链路
 `Vue3 → Nginx:80 → Gateway:8080 → auth-service:8081 / kb-service:8082 → rag-service:8001`，配套 Nacos + Redis + MySQL。
 
-### 后端模块（[modules/](file:///d:/AIFourOeight/demo0727/modules)）
+### 后端模块（[modules/](file:///d:/AIfourOeight/platform/modules)）
 - **common** — 公共代码：JWT 工具、统一返回结构、操作日志注解、常量
 - **gateway** — 网关：统一 JWT 校验 + `lb://` 负载均衡路由
 - **auth-service** — 认证服务：登录/注册/验证码、用户、角色、权限(RBAC)、菜单、系统配置、Dashboard 聚合

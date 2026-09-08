@@ -40,6 +40,14 @@ spring:
       max-file-size: 50MB
       max-request-size: 100MB
 
+# ==================== Security 配置 ====================
+security:
+  jwt:
+    # 必须与 auth-service 的 JWT 密钥一致（供 token 解析）：生产由 JWT_SECRET 环境变量覆盖
+    secret: ${JWT_SECRET:enterprise-ai-platform-secret-key-2024-enterprise-ai-platform-secret-key}
+    expiration: 86400000
+    refresh-expiration: 604800000
+
 # ==================== MyBatis-Plus 配置 ====================
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

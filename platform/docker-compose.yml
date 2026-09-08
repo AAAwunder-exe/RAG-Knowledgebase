@@ -6,6 +6,9 @@
 # 停止: docker compose down
 # 注意: 已有 mysql 数据卷需先执行迁移（见 deploy/migrate-split-db.sql），否则从空卷重新初始化
 
+# 固定 Compose 项目名：数据卷/网络资源名与目录无关，防重命名目录导致数据卷失联
+name: ai-platform
+
 services:
   # ==================== Nacos 注册中心 ====================
   nacos:
@@ -96,7 +99,7 @@ services:
   # ==================== Python RAG 引擎 ====================
   rag-service:
     build:
-      context: ../Atest
+      context: ../rag-engine
       dockerfile: Dockerfile
     container_name: ai-platform-rag
     restart: unless-stopped
@@ -232,6 +235,8 @@ services:
       # Nacos 鉴权账号（开鉴权后客户端必须登录；密码必填，禁止弱默认值上线）
       SPRING_CLOUD_NACOS_USERNAME: ${NACOS_USERNAME:-nacos}
       SPRING_CLOUD_NACOS_PASSWORD: ${NACOS_PASSWORD:?NACOS_PASSWORD is required, set it in .env}
+      # 与 gateway/auth-service 保持同一 JWT 密钥（token 解析校验）；真实值放在 .env
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required, set it in .env}
       # RAG 引擎在 compose 内部网络，服务名直连
       AI_RAG_BASE_URL: http://rag-service:8001
     volumes:
